@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Barbearia do Evandro — Agendamento Online</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Agende seu horário na Barbearia do Evandro em Guaratinguetá, SP. Corte, barba e combos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<!-- ============ NAVEGAÇÃO DO SITE (área do cliente) ============ -->
+<nav class="site-nav" id="site-nav">
+  <button class="brand" onclick="navegarPara('home')">Barbearia <span>Evandro</span></button>
+  <div class="nav-links" id="nav-links">
+    <a data-rota="home" onclick="navegarPara('home')">Início</a>
+    <a data-rota="servicos" onclick="navegarPara('servicos')">Serviços</a>
+    <a data-rota="barbeiro" onclick="navegarPara('barbeiro')">Barbeiro</a>
+    <a data-rota="contato" onclick="navegarPara('contato')">Contato</a>
+  </div>
+  <button class="nav-cta" onclick="navegarPara('agendamento')">Agendar horário</button>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menu">&#9776;</button>
+</nav>
+
+<main id="app"></main>
+
+<footer class="site-footer" id="site-footer">
+  <span>© 2026 Barbearia do Evandro</span>
+  <span>Rua Alexandre Fleming, 415 · loja 4 · Parque das Árvores, Guaratinguetá — SP</span>
+</footer>
+
+<!-- ============ TEMPLATES DAS TELAS ============ -->
+
+<template id="tpl-home">
+  <div class="hero">
+    <div class="hero-flex">
+      <div class="hero-copy">
+        <p class="eyebrow">Guaratinguetá · SP</p>
+        <h2 class="headline">Estilo e tradição em cada corte</h2>
+        <p class="lede">Agende seu horário online, escolha o serviço e chegue na hora certa — sem espera e sem ligação.</p>
+        <button class="btn btn-primary" onclick="navegarPara('agendamento')">Agendar agora</button>
+      </div>
+      <div class="hero-photo">foto do ambiente</div>
+    </div>
+  </div>
+  <div class="service-row" id="home-servicos-destaque">
+    <div class="estado-vazio">Carregando serviços...</div>
+  </div>
+</template>
+
+<template id="tpl-servicos">
+  <div class="container">
+    <p class="eyebrow">Tabela de preços</p>
+    <h2 class="headline">Serviços disponíveis</h2>
+  </div>
+  <div class="price-list" id="lista-servicos-completa">
+    <div class="estado-vazio">Carregando serviços...</div>
+  </div>
+</template>
+
+<template id="tpl-barbeiro">
+  <div class="barber-wrap" id="barber-wrap">
+    <div class="estado-vazio">Carregando informações do barbeiro...</div>
+  </div>
+</template>
+
+<template id="tpl-agendamento">
+  <div class="container" style="padding-bottom:0;">
+    <p class="eyebrow">Home / Agendar</p>
+    <h2 class="headline" style="font-size:24px;">Novo agendamento</h2>
+  </div>
+  <div id="ag-aviso"></div>
+  <div style="padding:0 34px 40px;">
+    <div class="panel-card">
+      <h3>Serviço e horário</h3>
+      <div class="panel-body">
+        <div class="field-grid">
+          <div class="field">
+            <label for="ag-servico">Serviço</label>
+            <select id="ag-servico"><option value="">Selecione o serviço</option></select>
+          </div>
+          <div class="field">
+            <label for="ag-data">Data</label>
+            <input type="date" id="ag-data">
+          </div>
+        </div>
+        <div class="field" style="margin-top:16px;">
+          <label>Horários disponíveis</label>
+          <div class="slot-grid" id="grade-horarios">
+            <div class="estado-vazio">Selecione uma data para ver os horários.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-card">
+      <h3>Seus dados</h3>
+      <div class="panel-body">
+        <div class="field-grid">
+          <div class="field"><label for="ag-nome">Nome</label><input type="text" id="ag-nome" placeholder="Digite seu nome"></div>
+          <div class="field"><label for="ag-telefone">WhatsApp</label><input type="text" id="ag-telefone" placeholder="(12) 90000-0000"></div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="navegarPara('home')">Cancelar</button>
+        <button class="btn btn-primary" id="ag-confirmar-btn" onclick="confirmarAgendamento()">Confirmar agendamento</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-confirmacao">
+  <div class="confirm-wrap">
+    <div class="confirm-card">
+      <div class="confirm-top">
+        <div class="check">&#10003;</div>
+        <h3>Agendamento confirmado</h3>
+      </div>
+      <div class="confirm-details" id="confirm-detalhes"></div>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" onclick="navegarPara('home')">Voltar ao início</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-contato">
+  <div class="contact-wrap">
+    <div class="contact-list">
+      <p class="eyebrow">Fale conosco</p>
+      <h2 class="headline" style="font-size:24px;">Contato e localização</h2>
+      <div class="info-line"><b>Endereço:</b>&nbsp;Rua Alexandre Fleming, 415 — loja 4, Parque das Árvores</div>
+      <div class="info-line"><b>WhatsApp:</b>&nbsp;(12) 98185-7618</div>
+      <div class="info-line"><b>Instagram:</b>&nbsp;@barberevandrooliveira</div>
+      <div class="info-line"><b>Horário:</b>&nbsp;Terça a sábado, 9h às 19h</div>
+    </div>
+    <div class="map-box">mapa de localização</div>
+  </div>
+</template>
+
+<template id="tpl-admin-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <button class="brand" style="color:var(--ink);" onclick="navegarPara('home')">Barbearia <span style="color:var(--gold);">Evandro</span></button>
+      <div class="sub">Área administrativa</div>
+      <div id="login-erro"></div>
+      <div class="field"><label for="login-nome">Usuário</label><input type="text" id="login-nome" placeholder="evandro"></div>
+      <div class="field"><label for="login-senha">Senha</label><input type="password" id="login-senha" placeholder="••••••••"></div>
+      <button class="btn btn-primary" id="login-btn" onclick="fazerLogin()">Entrar</button>
+      <button class="login-voltar" onclick="navegarPara('home')">&larr; Voltar ao site</button>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-admin-painel">
+  <div class="admin-layout">
+    <div class="sidebar">
+      <button class="brand" style="color:var(--ink);" onclick="navegarPara('home')">Barbearia <span style="color:var(--gold);">Evandro</span></button>
+      <button class="side-link" data-secao="dashboard" onclick="trocarSecaoAdmin('dashboard')">Dashboard</button>
+      <button class="side-link" data-secao="agendamentos" onclick="trocarSecaoAdmin('agendamentos')">Agendamentos</button>
+      <button class="side-link" data-secao="servicos" onclick="trocarSecaoAdmin('servicos')">Serviços</button>
+      <button class="side-link" data-secao="barbeiro" onclick="trocarSecaoAdmin('barbeiro')">Barbeiro</button>
+      <button class="side-link sair" onclick="sairAdmin()">Sair</button>
+    </div>
+    <div class="admin-main" id="admin-conteudo">
+      <div class="carregando">Carregando painel...</div>
+    </div>
+  </div>
+</template>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
