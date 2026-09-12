@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barbearia do Evandro — Agendamento Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1c1a17;
+    --charcoal: #26221d;
+    --gold: #b98a3f;
+    --gold-light: #e7c98a;
+    --cream: #f6f1e8;
+    --paper: #ffffff;
+    --line: #e4dcce;
+    --muted: #7a7168;
+    --ok-bg: #e8f3e3; --ok-fg: #33612b;
+    --wait-bg: #fbeed9; --wait-fg: #8a5a10;
+    --done-bg: #e2eef4; --done-fg: #1f5a75;
+    --cancel-bg: #f6e3e0; --cancel-fg: #8c3222;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Inter', sans-serif; background:var(--cream); color:var(--ink); }
+  h1, h2, h3 { font-family:'Fraunces', serif; margin:0 0 .3em 0; font-weight:600; }
+  a { color:inherit; }
+  p { line-height:1.55; color:#3a352e; }
+
+  /* ---------- Cabeçalho público ---------- */
+  .topbar { background:var(--charcoal); color:var(--cream); padding:0 1.5rem; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:20; }
+  .brand { display:flex; align-items:center; gap:.6rem; font-family:'Fraunces', serif; font-size:1.15rem; letter-spacing:.02em; }
+  .brand .mark { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg, var(--gold-light), var(--gold)); display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--charcoal); }
+  .topnav { display:flex; gap:1.6rem; }
+  .topnav button { background:none; border:none; color:var(--cream); font-size:.92rem; cursor:pointer; opacity:.78; padding:.4rem 0; border-bottom:2px solid transparent; font-family:inherit; }
+  .topnav button.active, .topnav button:hover { opacity:1; border-color:var(--gold); }
+  .menu-toggle { display:none; background:none; border:1px solid var(--cream); color:var(--cream); border-radius:6px; padding:.4rem .6rem; cursor:pointer; }
+
+  main.public { max-width:960px; margin:0 auto; padding:2.4rem 1.5rem 4rem; }
+  .view { display:none; animation:fade .25s ease; }
+  .view.active { display:block; }
+  @keyframes fade { from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  .hero { display:flex; align-items:center; gap:2.5rem; padding:2.4rem 0 2.8rem; border-bottom:1px solid var(--line); margin-bottom:2rem; flex-wrap:wrap; }
+  .hero .eyebrow { color:var(--gold); font-weight:600; font-size:.85rem; margin-bottom:.5rem; }
+  .hero h1 { font-size:2.2rem; max-width:520px; }
+  .hero p.lead { max-width:460px; color:var(--muted); }
+  .hero-actions { display:flex; gap:.8rem; margin-top:1.3rem; }
+
+  .btn { border:none; border-radius:7px; padding:.72rem 1.35rem; font-size:.92rem; font-weight:600; cursor:pointer; font-family:inherit; transition:transform .1s ease, box-shadow .15s ease; }
+  .btn:active { transform:scale(.98); }
+  .btn-primary { background:var(--ink); color:var(--cream); }
+  .btn-primary:hover { box-shadow:0 4px 14px rgba(0,0,0,.18); }
+  .btn-outline { background:transparent; border:1.4px solid var(--ink); color:var(--ink); }
+  .btn-gold { background:var(--gold); color:#241a08; }
+  .btn-danger { background:transparent; color:#8c3222; border:1.4px solid #d8b2a9; }
+  .btn-sm { padding:.45rem .8rem; font-size:.82rem; border-radius:6px; }
+  .btn[disabled] { opacity:.5; cursor:not-allowed; }
+
+  .card { background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:1.5rem; margin-bottom:1.4rem; }
+  .card h2 { font-size:1.25rem; margin-bottom:1rem; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.4rem; }
+  @media (max-width:720px){ .grid-2{ grid-template-columns:1fr; } }
+
+  .servico-row { display:flex; justify-content:space-between; align-items:center; padding:.85rem 0; border-bottom:1px solid var(--line); gap:1rem; }
+  .servico-row:last-child { border-bottom:none; }
+  .servico-row .info b { display:block; font-size:1rem; }
+  .servico-row .info span { color:var(--muted); font-size:.85rem; }
+  .preco { font-family:'Fraunces', serif; font-weight:600; color:var(--gold); white-space:nowrap; }
+
+  .form-group { margin-bottom:1.05rem; display:flex; flex-direction:column; gap:.4rem; }
+  .form-group label { font-size:.85rem; font-weight:600; color:#4a443c; }
+  .form-group input, .form-group select, .form-group textarea {
+    height:42px; padding:0 .8rem; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:.93rem; background:#fff;
+  }
+  .form-group textarea { height:auto; padding:.6rem .8rem; resize:vertical; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media (max-width:560px){ .form-row{ grid-template-columns:1fr; } }
+
+  .horarios-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin:.4rem 0 1.2rem; }
+  @media (max-width:560px){ .horarios-grid{ grid-template-columns:repeat(3,1fr);} }
+  .horario-btn { padding:.6rem; border:1px solid var(--line); border-radius:7px; text-align:center; cursor:pointer; background:#fff; font-size:.88rem; }
+  .horario-btn:hover { border-color:var(--gold); }
+  .horario-btn.ocupado { background:#f1efe9; color:#b3ab9e; cursor:not-allowed; text-decoration:line-through; }
+  .horario-btn.selecionado { background:var(--ink); color:var(--cream); border-color:var(--ink); }
+
+  .status-tag { font-size:.74rem; padding:.25rem .6rem; border-radius:20px; font-weight:600; white-space:nowrap; }
+  .status-agendado { background:var(--wait-bg); color:var(--wait-fg); }
+  .status-confirmado { background:var(--done-bg); color:var(--done-fg); }
+  .status-concluido { background:var(--ok-bg); color:var(--ok-fg); }
+  .status-cancelado { background:var(--cancel-bg); color:var(--cancel-fg); }
+
+  .alerta { padding:.8rem 1rem; border-radius:7px; font-size:.9rem; margin-bottom:1rem; display:none; }
+  .alerta.erro { background:var(--cancel-bg); color:var(--cancel-fg); }
+  .alerta.sucesso { background:var(--ok-bg); color:var(--ok-fg); }
+  .alerta.show { display:block; }
+
+  footer.public { text-align:center; padding:2rem; color:var(--muted); font-size:.82rem; border-top:1px solid var(--line); }
+
+  /* ---------- Área administrativa ---------- */
+  .admin-shell { display:none; min-height:100vh; }
+  .admin-shell.active { display:flex; }
+  .sidebar { width:220px; background:var(--charcoal); color:var(--cream); padding:1.4rem 1rem; flex-shrink:0; }
+  .sidebar .brand { color:var(--cream); margin-bottom:2rem; padding:0 .4rem; }
+  .sidebar button { width:100%; text-align:left; background:none; border:none; color:var(--cream); opacity:.75; padding:.65rem .8rem; border-radius:7px; cursor:pointer; font-family:inherit; font-size:.92rem; margin-bottom:.2rem; }
+  .sidebar button.active, .sidebar button:hover { opacity:1; background:rgba(255,255,255,.08); }
+  .sidebar .sair { margin-top:1.5rem; border-top:1px solid rgba(255,255,255,.15); padding-top:1rem; color:var(--gold-light); opacity:1; }
+  .admin-main { flex:1; padding:2rem 2.4rem; max-width:1000px; }
+  .admin-main h2 { font-size:1.5rem; }
+  .breadcrumb { color:var(--muted); font-size:.82rem; margin-bottom:1.2rem; }
+
+  table.admin-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  table.admin-table th { text-align:left; color:var(--muted); font-weight:600; font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; padding:.5rem .6rem; border-bottom:1px solid var(--line); }
+  table.admin-table td { padding:.7rem .6rem; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.admin-table tr:last-child td { border-bottom:none; }
+  .acoes { display:flex; gap:.4rem; flex-wrap:wrap; }
+
+  .toggle-pill { display:inline-flex; gap:.3rem; }
+
+  @media (max-width:800px){
+    .topnav { display:none; }
+    .topnav.open { display:flex; position:absolute; top:64px; left:0; right:0; background:var(--charcoal); flex-direction:column; padding:1rem 1.5rem; gap:.9rem; }
+    .menu-toggle { display:block; }
+    .admin-shell.active { flex-direction:column; }
+    .sidebar { width:100%; display:flex; flex-wrap:wrap; gap:.3rem; padding:1rem; }
+    .sidebar .brand { width:100%; margin-bottom:.6rem; }
+    .sidebar button { width:auto; }
+    .admin-main { padding:1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= ÁREA PÚBLICA (CLIENTE) ================= -->
+<div id="area-publica">
+  <header class="topbar">
+    <div class="brand"><span class="mark">BE</span> Barbearia do Evandro</div>
+    <nav class="topnav" id="topnav">
+      <button data-view="home" class="active">Início</button>
+      <button data-view="servicos">Serviços</button>
+      <button data-view="barbeiro">Barbeiro</button>
+      <button data-view="agendar">Agendar</button>
+      <button data-view="contato">Contato</button>
+      <button data-view="admin-login">Área Administrativa</button>
+    </nav>
+    <button class="menu-toggle" id="menuToggle">☰</button>
+  </header>
+
+  <main class="public">
+
+    <section class="view active" id="view-home">
+      <div class="hero">
+        <div>
+          <div class="eyebrow">Guaratinguetá · SP</div>
+          <h1>Seu horário reservado, sem trocar mensagem.</h1>
+          <p class="lead">Consulte serviços e preços, conheça o barbeiro e escolha data e horário disponível — tudo em poucos cliques.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" data-goto="agendar">Agendar horário</button>
+            <button class="btn btn-outline" data-goto="servicos">Ver serviços</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Serviços em destaque</h2>
+        <div id="lista-servicos-home">Carregando…</div>
+      </div>
+    </section>
+
+    <section class="view" id="view-servicos">
+      <h2 style="margin-bottom:1rem;">Serviços e preços</h2>
+      <div class="card">
+        <div id="lista-servicos-completa">Carregando…</div>
+      </div>
+    </section>
+
+    <section class="view" id="view-barbeiro">
+      <h2 style="margin-bottom:1rem;">O barbeiro</h2>
+      <div class="card" id="card-barbeiro">Carregando…</div>
+    </section>
+
+    <section class="view" id="view-agendar">
+      <h2 style="margin-bottom:1rem;">Novo agendamento</h2>
+      <div class="card">
+        <div class="alerta erro" id="agendar-erro"></div>
+        <div class="alerta sucesso" id="agendar-sucesso"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ag-servico">Serviço</label>
+            <select id="ag-servico"><option value="">Selecione o serviço</option></select>
+          </div>
+          <div class="form-group">
+            <label for="ag-data">Data</label>
+            <input type="date" id="ag-data">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ag-nome">Seu nome</label>
+            <input type="text" id="ag-nome" placeholder="Nome completo">
+          </div>
+          <div class="form-group">
+            <label for="ag-telefone">WhatsApp</label>
+            <input type="text" id="ag-telefone" placeholder="(12) 90000-0000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Horário</label>
+          <div class="horarios-grid" id="grade-horarios">
+            <span style="color:var(--muted); font-size:.85rem;">Escolha uma data para ver os horários.</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ag-obs">Observação (opcional)</label>
+          <textarea id="ag-obs" rows="2" placeholder="Alguma preferência ou observação"></textarea>
+        </div>
+        <button class="btn btn-gold" id="btn-confirmar-agendamento">Confirmar agendamento</button>
+      </div>
+    </section>
+
+    <section class="view" id="view-contato">
+      <h2 style="margin-bottom:1rem;">Contato e localização</h2>
+      <div class="card">
+        <p><b>Endereço:</b> Rua Alexandre Fleming, 415 - Loja 4, Parque das Árvores, Guaratinguetá - SP</p>
+        <p><b>WhatsApp:</b> +55 12 98185-7618</p>
+        <p><b>Instagram:</b> @barberevandrooliveira</p>
+        <p style="color:var(--muted); font-size:.85rem;">Atendimento sob agendamento prévio pela plataforma.</p>
+      </div>
+    </section>
+
+    <section class="view" id="view-admin-login">
+      <h2 style="margin-bottom:1rem;">Área administrativa</h2>
+      <div class="card" style="max-width:380px;">
+        <div class="alerta erro" id="login-erro"></div>
+        <div class="form-group">
+          <label for="login-nome">Usuário</label>
+          <input type="text" id="login-nome" placeholder="admin">
+        </div>
+        <div class="form-group">
+          <label for="login-senha">Senha</label>
+          <input type="password" id="login-senha">
+        </div>
+        <button class="btn btn-primary" id="btn-login" style="width:100%;">Entrar</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="public">© 2026 Barbearia do Evandro — Sistema de Agendamento</footer>
+</div>
+
+<!-- ================= ÁREA ADMINISTRATIVA (PAINEL) ================= -->
+<div class="admin-shell" id="admin-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="mark">BE</span> Painel Admin</div>
+    <button data-admin-view="agendamentos" class="active">Agendamentos</button>
+    <button data-admin-view="servicos">Serviços</button>
+    <button data-admin-view="barbeiro">Barbeiro</button>
+    <button class="sair" id="btn-sair">Sair</button>
+  </aside>
+  <main class="admin-main">
+
+    <div class="admin-view active" id="admin-view-agendamentos">
+      <h2>Agendamentos</h2>
+      <p class="breadcrumb">Início / Agendamentos</p>
+      <div class="card">
+        <table class="admin-table">
+          <thead><tr><th>Cliente</th><th>Serviço</th><th>Data</th><th>Horário</th><th>Status</th><th>Alterar</th></tr></thead>
+          <tbody id="tbody-agendamentos"><tr><td colspan="6">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-view" id="admin-view-servicos" style="display:none;">
+      <h2>Serviços</h2>
+      <p class="breadcrumb">Início / Serviços</p>
+
+      <div class="card">
+        <h2 style="font-size:1.05rem;">Cadastrar novo serviço</h2>
+        <div class="alerta erro" id="servico-erro"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome</label><input type="text" id="srv-nome"></div>
+          <div class="form-group"><label>Preço (R$)</label><input type="number" step="0.01" id="srv-preco"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Duração (minutos)</label><input type="number" id="srv-duracao" value="30"></div>
+          <div class="form-group"><label>Descrição</label><input type="text" id="srv-descricao"></div>
+        </div>
+        <button class="btn btn-primary" id="btn-add-servico">Cadastrar serviço</button>
+      </div>
+
+      <div class="card">
+        <table class="admin-table">
+          <thead><tr><th>Nome</th><th>Preço</th><th>Duração</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="tbody-servicos"><tr><td colspan="5">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-view" id="admin-view-barbeiro" style="display:none;">
+      <h2>Barbeiro</h2>
+      <p class="breadcrumb">Início / Barbeiro</p>
+      <div class="card" id="form-barbeiro">Carregando…</div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:' + (window.location.port || '10000') + '/api'
+  : '/api';
+
+// ---------------- Navegação pública ----------------
+const topnav = document.getElementById('topnav');
+document.getElementById('menuToggle').addEventListener('click', () => topnav.classList.toggle('open'));
+
+function irParaView(nome) {
+  document.querySelectorAll('#area-publica .view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + nome).classList.add('active');
+  document.querySelectorAll('#topnav button').forEach(b => b.classList.toggle('active', b.dataset.view === nome));
+  topnav.classList.remove('open');
+  if (nome === 'home') carregarServicos();
+  if (nome === 'servicos') carregarServicos();
+  if (nome === 'barbeiro') carregarBarbeiroPublico();
+  if (nome === 'agendar') carregarServicos();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => irParaView(b.dataset.view)));
+document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => irParaView(b.dataset.goto)));
+
+function mostrarAlerta(id, texto) {
+  const el = document.getElementById(id);
+  el.textContent = texto;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+function formatarPreco(v) { return 'R$ ' + parseFloat(v).toFixed(2).replace('.', ','); }
+
+// ---------------- Serviços (público) ----------------
+let servicosCache = [];
+async function carregarServicos() {
+  try {
+    const res = await fetch(API_URL + '/servicos');
+    servicosCache = await res.json();
+
+    const htmlLista = servicosCache.map(s => `
+      <div class="servico-row">
+        <div class="info"><b>${s.nome}</b><span>${s.descricao || ''} · ${s.duracao_minutos} min</span></div>
+        <div class="preco">${formatarPreco(s.preco)}</div>
+      </div>`).join('') || '<p style="color:var(--muted)">Nenhum serviço cadastrado no momento.</p>';
+
+    document.getElementById('lista-servicos-home').innerHTML = htmlLista;
+    document.getElementById('lista-servicos-completa').innerHTML = htmlLista;
+
+    const sel = document.getElementById('ag-servico');
+    sel.innerHTML = '<option value="">Selecione o serviço</option>' +
+      servicosCache.map(s => `<option value="${s.id_servico}">${s.nome} — ${formatarPreco(s.preco)}</option>`).join('');
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// ---------------- Barbeiro (público) ----------------
+async function carregarBarbeiroPublico() {
+  try {
+    const res = await fetch(API_URL + '/barbeiros');
+    const lista = await res.json();
+    const b = lista[0];
+    document.getElementById('card-barbeiro').innerHTML = b ? `
+      <h2>${b.nome}</h2>
+      <p>Atendimento das ${b.horario_inicio?.substring(0,5)} às ${b.horario_fim?.substring(0,5)}.</p>
+      <p><b>WhatsApp:</b> ${b.telefone || '—'}</p>
+      <p><b>Instagram:</b> ${b.instagram || '—'}</p>
+    ` : '<p>Nenhum barbeiro cadastrado.</p>';
+  } catch (e) { console.error(e); }
+}
+
+// ---------------- Agendamento (público) ----------------
+let horarioSelecionado = null;
+document.getElementById('ag-data').addEventListener('change', carregarHorarios);
+
+async function carregarHorarios() {
+  const data = document.getElementById('ag-data').value;
+  horarioSelecionado = null;
+  const grade = document.getElementById('grade-horarios');
+  if (!data) { grade.innerHTML = '<span style="color:var(--muted); font-size:.85rem;">Escolha uma data para ver os horários.</span>'; return; }
+
+  grade.innerHTML = '<span style="color:var(--muted); font-size:.85rem;">Carregando horários…</span>';
+  const res = await fetch(API_URL + '/horarios-disponiveis?data=' + data);
+  const { horarios, ocupados } = await res.json();
+
+  grade.innerHTML = horarios.map(h => {
+    const ocupado = ocupados.includes(h);
+    return `<div class="horario-btn ${ocupado ? 'ocupado' : ''}" data-hora="${h}">${h}</div>`;
+  }).join('');
+
+  grade.querySelectorAll('.horario-btn:not(.ocupado)').forEach(el => {
+    el.addEventListener('click', () => {
+      grade.querySelectorAll('.horario-btn').forEach(b => b.classList.remove('selecionado'));
+      el.classList.add('selecionado');
+      horarioSelecionado = el.dataset.hora;
+    });
+  });
+}
+
+document.getElementById('btn-confirmar-agendamento').addEventListener('click', async () => {
+  const dados = {
+    id_servico: document.getElementById('ag-servico').value,
+    data_agendamento: document.getElementById('ag-data').value,
+    hora_agendamento: horarioSelecionado,
+    nome_cliente: document.getElementById('ag-nome').value.trim(),
+    telefone_cliente: document.getElementById('ag-telefone').value.trim(),
+    observacao: document.getElementById('ag-obs').value.trim(),
+  };
+  if (!dados.id_servico || !dados.data_agendamento || !dados.hora_agendamento || !dados.nome_cliente || !dados.telefone_cliente) {
+    mostrarAlerta('agendar-erro', 'Preencha todos os campos e selecione um horário disponível.');
+    return;
+  }
+  try {
+    const res = await fetch(API_URL + '/agendamentos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados)
+    });
+    const resultado = await res.json();
+    if (!res.ok) { mostrarAlerta('agendar-erro', resultado.erro || 'Não foi possível agendar.'); return; }
+    mostrarAlerta('agendar-sucesso', 'Agendamento confirmado com sucesso! Você será atendido no horário escolhido.');
+    ['ag-nome','ag-telefone','ag-obs'].forEach(id => document.getElementById(id).value = '');
+    carregarHorarios();
+  } catch (e) {
+    mostrarAlerta('agendar-erro', 'Erro de conexão com o servidor.');
+  }
+});
+
+// ---------------- Login administrador ----------------
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const nome = document.getElementById('login-nome').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  try {
+    const res = await fetch(API_URL + '/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, senha })
+    });
+    if (!res.ok) { mostrarAlerta('login-erro', 'Usuário ou senha inválidos.'); return; }
+    sessionStorage.setItem('admin-logado', '1');
+    entrarNoPainel();
+  } catch (e) {
+    mostrarAlerta('login-erro', 'Erro de conexão com o servidor.');
+  }
+});
+
+function entrarNoPainel() {
+  document.getElementById('area-publica').style.display = 'none';
+  document.getElementById('admin-shell').classList.add('active');
+  carregarAgendamentosAdmin();
+}
+document.getElementById('btn-sair').addEventListener('click', () => {
+  sessionStorage.removeItem('admin-logado');
+  document.getElementById('admin-shell').classList.remove('active');
+  document.getElementById('area-publica').style.display = 'block';
+  irParaView('home');
+});
+if (sessionStorage.getItem('admin-logado') === '1') entrarNoPainel();
+
+// ---------------- Navegação do painel admin ----------------
+document.querySelectorAll('[data-admin-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar [data-admin-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.admin-view').forEach(v => v.style.display = 'none');
+    const alvo = document.getElementById('admin-view-' + btn.dataset.adminView);
+    alvo.style.display = 'block';
+    if (btn.dataset.adminView === 'agendamentos') carregarAgendamentosAdmin();
+    if (btn.dataset.adminView === 'servicos') carregarServicosAdmin();
+    if (btn.dataset.adminView === 'barbeiro') carregarBarbeiroAdmin();
+  });
+});
+
+// ---------------- Painel: agendamentos ----------------
+async function carregarAgendamentosAdmin() {
+  const res = await fetch(API_URL + '/agendamentos');
+  const lista = await res.json();
+  const statusOpcoes = ['agendado','confirmado','concluido','cancelado'];
+  document.getElementById('tbody-agendamentos').innerHTML = lista.map(a => `
+    <tr>
+      <td>${a.cliente}<br><span style="color:var(--muted); font-size:.78rem;">${a.telefone_cliente || ''}</span></td>
+      <td>${a.servico}</td>
+      <td>${a.data_agendamento?.substring(0,10)}</td>
+      <td>${a.hora_agendamento?.substring(0,5)}</td>
+      <td><span class="status-tag status-${a.status}">${a.status}</span></td>
+      <td>
+        <select class="mudar-status" data-id="${a.id_agendamento}">
+          ${statusOpcoes.map(s => `<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6">Nenhum agendamento encontrado.</td></tr>';
+
+  document.querySelectorAll('.mudar-status').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      await fetch(API_URL + '/agendamentos/' + sel.dataset.id + '/status', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: sel.value })
+      });
+      carregarAgendamentosAdmin();
+    });
+  });
+}
+
+// ---------------- Painel: serviços (CRUD) ----------------
+async function carregarServicosAdmin() {
+  const res = await fetch(API_URL + '/admin/servicos');
+  const lista = await res.json();
+  document.getElementById('tbody-servicos').innerHTML = lista.map(s => `
+    <tr>
+      <td>${s.nome}</td>
+      <td>${formatarPreco(s.preco)}</td>
+      <td>${s.duracao_minutos} min</td>
+      <td>${s.ativo ? '<span class="status-tag status-confirmado">ativo</span>' : '<span class="status-tag status-cancelado">inativo</span>'}</td>
+      <td class="acoes">
+        <button class="btn btn-outline btn-sm toggle-ativo" data-id="${s.id_servico}" data-ativo="${s.ativo}">${s.ativo ? 'Desativar' : 'Ativar'}</button>
+        <button class="btn btn-danger btn-sm excluir-servico" data-id="${s.id_servico}">Excluir</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5">Nenhum serviço cadastrado.</td></tr>';
+
+  document.querySelectorAll('.toggle-ativo').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await fetch(API_URL + '/servicos/' + btn.dataset.id, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo: btn.dataset.ativo === 'true' ? false : true })
+      });
+      carregarServicosAdmin();
+    });
+  });
+  document.querySelectorAll('.excluir-servico').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Excluir este serviço?')) return;
+      const res = await fetch(API_URL + '/servicos/' + btn.dataset.id, { method: 'DELETE' });
+      const r = await res.json();
+      if (!res.ok) { alert(r.erro); return; }
+      carregarServicosAdmin();
+    });
+  });
+}
+
+document.getElementById('btn-add-servico').addEventListener('click', async () => {
+  const dados = {
+    nome: document.getElementById('srv-nome').value.trim(),
+    preco: parseFloat(document.getElementById('srv-preco').value),
+    duracao_minutos: parseInt(document.getElementById('srv-duracao').value) || 30,
+    descricao: document.getElementById('srv-descricao').value.trim(),
+  };
+  if (!dados.nome || isNaN(dados.preco)) { mostrarAlerta('servico-erro', 'Informe nome e preço válidos.'); return; }
+  const res = await fetch(API_URL + '/servicos', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados)
+  });
+  if (!res.ok) { mostrarAlerta('servico-erro', 'Não foi possível cadastrar o serviço.'); return; }
+  ['srv-nome','srv-preco','srv-descricao'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('srv-duracao').value = 30;
+  carregarServicosAdmin();
+});
+
+// ---------------- Painel: barbeiro ----------------
+async function carregarBarbeiroAdmin() {
+  const res = await fetch(API_URL + '/barbeiros');
+  const lista = await res.json();
+  const b = lista[0] || {};
+  document.getElementById('form-barbeiro').innerHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>Nome</label><input type="text" id="barb-nome" value="${b.nome || ''}"></div>
+      <div class="form-group"><label>WhatsApp</label><input type="text" id="barb-telefone" value="${b.telefone || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Instagram</label><input type="text" id="barb-instagram" value="${b.instagram || ''}"></div>
+      <div class="form-group"><label>Horário de atendimento</label>
+        <div style="display:flex; gap:.5rem;">
+          <input type="time" id="barb-inicio" value="${(b.horario_inicio||'09:00').substring(0,5)}">
+          <input type="time" id="barb-fim" value="${(b.horario_fim||'18:00').substring(0,5)}">
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-salvar-barbeiro">Salvar alterações</button>
+    <span id="barb-msg" style="margin-left:.8rem; color:var(--muted); font-size:.85rem;"></span>
+  `;
+  document.getElementById('btn-salvar-barbeiro').addEventListener('click', async () => {
+    const dados = {
+      nome: document.getElementById('barb-nome').value.trim(),
+      telefone: document.getElementById('barb-telefone').value.trim(),
+      instagram: document.getElementById('barb-instagram').value.trim(),
+      horario_inicio: document.getElementById('barb-inicio').value,
+      horario_fim: document.getElementById('barb-fim').value,
+    };
+    await fetch(API_URL + '/barbeiros/' + b.id_barbeiro, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados)
+    });
+    document.getElementById('barb-msg').textContent = 'Salvo com sucesso.';
+    setTimeout(() => document.getElementById('barb-msg').textContent = '', 3000);
+  });
+}
+
+// Carga inicial
+carregarServicos();
+</script>
+</body>
+</html>
