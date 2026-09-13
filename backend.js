@@ -135,18 +135,19 @@ app.get("/api/barbeiros", async (req, res) => {
 // Atualiza os dados do barbeiro (uso administrativo)
 app.put("/api/barbeiros/:id", async (req, res) => {
   const { id } = req.params;
-  const { nome, telefone, instagram, horario_inicio, horario_fim, ativo } = req.body;
+  const { nome, telefone, instagram, endereco, horario_inicio, horario_fim, ativo } = req.body;
   try {
     const resultado = await pool.query(
       `UPDATE barbeiros SET
          nome = COALESCE($1, nome),
          telefone = COALESCE($2, telefone),
          instagram = COALESCE($3, instagram),
-         horario_inicio = COALESCE($4, horario_inicio),
-         horario_fim = COALESCE($5, horario_fim),
-         ativo = COALESCE($6, ativo)
-       WHERE id_barbeiro = $7 RETURNING *`,
-      [nome, telefone, instagram, horario_inicio, horario_fim, ativo, id]
+         endereco = COALESCE($4, endereco),
+         horario_inicio = COALESCE($5, horario_inicio),
+         horario_fim = COALESCE($6, horario_fim),
+         ativo = COALESCE($7, ativo)
+       WHERE id_barbeiro = $8 RETURNING *`,
+      [nome, telefone, instagram, endereco, horario_inicio, horario_fim, ativo, id]
     );
     if (resultado.rows.length === 0) {
       return res.status(404).json({ erro: "Barbeiro não encontrado." });
@@ -306,6 +307,34 @@ app.post("/api/login", async (req, res) => {
     return res.status(200).json({ mensagem: "Login realizado com sucesso.", nivel_acesso: usuario.nivel_acesso });
   } catch (err) {
     console.error("Erro ao autenticar:", err);
+    return res.status(500).json({ erro: "Erro interno no servidor." });
+  }
+});
+
+// Troca a senha do usuário administrador (tela Config do painel)
+app.put("/api/usuarios/senha", async (req, res) => {
+  const { nome, senha_atual, senha_nova } = req.body;
+  if (!nome || !senha_atual || !senha_nova) {
+    return res.status(400).json({ erro: "Preencha a senha atual e a nova senha." });
+  }
+  if (senha_nova.length < 6) {
+    return res.status(400).json({ erro: "A nova senha deve ter pelo menos 6 caracteres." });
+  }
+  try {
+    const resultado = await pool.query("SELECT * FROM usuarios WHERE nome = $1", [nome]);
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ erro: "Usuário não encontrado." });
+    }
+    const usuario = resultado.rows[0];
+    const senhaValida = await bcrypt.compare(senha_atual, usuario.senha);
+    if (!senhaValida) {
+      return res.status(401).json({ erro: "Senha atual incorreta." });
+    }
+    const novoHash = await bcrypt.hash(senha_nova, 10);
+    await pool.query("UPDATE usuarios SET senha = $1 WHERE id_usuario = $2", [novoHash, usuario.id_usuario]);
+    return res.status(200).json({ mensagem: "Senha alterada com sucesso." });
+  } catch (err) {
+    console.error("Erro ao trocar senha:", err);
     return res.status(500).json({ erro: "Erro interno no servidor." });
   }
 });
