@@ -257,6 +257,7 @@
     <button data-admin-view="agendamentos" class="active">Agendamentos</button>
     <button data-admin-view="servicos">Serviços</button>
     <button data-admin-view="barbeiro">Barbeiro</button>
+    <button data-admin-view="config">Config</button>
     <button class="sair" id="btn-sair">Sair</button>
   </aside>
   <main class="admin-main">
@@ -302,6 +303,31 @@
       <h2>Barbeiro</h2>
       <p class="breadcrumb">Início / Barbeiro</p>
       <div class="card" id="form-barbeiro">Carregando…</div>
+    </div>
+
+    <div class="admin-view" id="admin-view-config" style="display:none;">
+      <h2>Config</h2>
+      <p class="breadcrumb">Início / Config</p>
+
+      <div class="card">
+        <h2 style="font-size:1.05rem;">Dados do negócio</h2>
+        <div class="alerta erro" id="config-negocio-erro"></div>
+        <div id="form-config-negocio">Carregando…</div>
+      </div>
+
+      <div class="card">
+        <h2 style="font-size:1.05rem;">Trocar senha</h2>
+        <div class="alerta erro" id="config-senha-erro"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Senha atual</label><input type="password" id="senha-atual"></div>
+          <div class="form-group"><label>Nova senha</label><input type="password" id="senha-nova"></div>
+        </div>
+        <div class="form-group" style="max-width:260px;">
+          <label>Confirmar nova senha</label><input type="password" id="senha-nova-confirmar">
+        </div>
+        <button class="btn btn-primary" id="btn-trocar-senha">Salvar nova senha</button>
+        <span id="senha-msg" style="margin-left:.8rem; color:var(--muted); font-size:.85rem;"></span>
+      </div>
     </div>
 
   </main>
@@ -472,6 +498,7 @@ document.querySelectorAll('[data-admin-view]').forEach(btn => {
     if (btn.dataset.adminView === 'agendamentos') carregarAgendamentosAdmin();
     if (btn.dataset.adminView === 'servicos') carregarServicosAdmin();
     if (btn.dataset.adminView === 'barbeiro') carregarBarbeiroAdmin();
+    if (btn.dataset.adminView === 'config') carregarConfigNegocio();
   });
 });
 
@@ -594,6 +621,68 @@ async function carregarBarbeiroAdmin() {
     setTimeout(() => document.getElementById('barb-msg').textContent = '', 3000);
   });
 }
+
+// ---------------- Painel: config (dados do negócio + senha) ----------------
+async function carregarConfigNegocio() {
+  const res = await fetch(API_URL + '/barbeiros');
+  const lista = await res.json();
+  const b = lista[0] || {};
+  document.getElementById('form-config-negocio').innerHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>Endereço</label><input type="text" id="cfg-endereco" value="${b.endereco || ''}" placeholder="Rua, número, bairro, cidade - UF"></div>
+      <div class="form-group"><label>WhatsApp</label><input type="text" id="cfg-telefone" value="${b.telefone || ''}"></div>
+    </div>
+    <div class="form-group" style="max-width:320px;">
+      <label>Instagram</label><input type="text" id="cfg-instagram" value="${b.instagram || ''}">
+    </div>
+    <button class="btn btn-primary" id="btn-salvar-config-negocio">Salvar alterações</button>
+    <span id="config-negocio-msg" style="margin-left:.8rem; color:var(--muted); font-size:.85rem;"></span>
+  `;
+  document.getElementById('btn-salvar-config-negocio').addEventListener('click', async () => {
+    const dados = {
+      endereco: document.getElementById('cfg-endereco').value.trim(),
+      telefone: document.getElementById('cfg-telefone').value.trim(),
+      instagram: document.getElementById('cfg-instagram').value.trim(),
+    };
+    const res = await fetch(API_URL + '/barbeiros/' + b.id_barbeiro, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados)
+    });
+    if (!res.ok) { mostrarAlerta('config-negocio-erro', 'Não foi possível salvar os dados do negócio.'); return; }
+    document.getElementById('config-negocio-msg').textContent = 'Salvo com sucesso.';
+    setTimeout(() => document.getElementById('config-negocio-msg').textContent = '', 3000);
+  });
+}
+
+document.getElementById('btn-trocar-senha').addEventListener('click', async () => {
+  const senhaAtual = document.getElementById('senha-atual').value;
+  const senhaNova = document.getElementById('senha-nova').value;
+  const senhaConfirmar = document.getElementById('senha-nova-confirmar').value;
+
+  if (!senhaAtual || !senhaNova || !senhaConfirmar) {
+    mostrarAlerta('config-senha-erro', 'Preencha todos os campos de senha.');
+    return;
+  }
+  if (senhaNova !== senhaConfirmar) {
+    mostrarAlerta('config-senha-erro', 'A confirmação não corresponde à nova senha.');
+    return;
+  }
+
+  try {
+    const res = await fetch(API_URL + '/usuarios/senha', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome: 'admin', senha_atual: senhaAtual, senha_nova: senhaNova })
+    });
+    const r = await res.json();
+    if (!res.ok) { mostrarAlerta('config-senha-erro', r.erro || 'Não foi possível trocar a senha.'); return; }
+    document.getElementById('senha-atual').value = '';
+    document.getElementById('senha-nova').value = '';
+    document.getElementById('senha-nova-confirmar').value = '';
+    document.getElementById('senha-msg').textContent = 'Senha alterada com sucesso.';
+    setTimeout(() => document.getElementById('senha-msg').textContent = '', 3000);
+  } catch (e) {
+    mostrarAlerta('config-senha-erro', 'Erro de conexão com o servidor.');
+  }
+});
 
 // Carga inicial
 carregarServicos();
