@@ -15,10 +15,14 @@ CREATE TABLE IF NOT EXISTS barbeiros (
     nome VARCHAR(100) NOT NULL,
     telefone VARCHAR(20) NULL,
     instagram VARCHAR(100) NULL,
+    endereco VARCHAR(255) NULL,
     horario_inicio TIME NOT NULL DEFAULT '09:00',
     horario_fim TIME NOT NULL DEFAULT '18:00',
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+-- Garante a coluna em bancos já existentes (criados antes desta versão do schema)
+ALTER TABLE barbeiros ADD COLUMN IF NOT EXISTS endereco VARCHAR(255) NULL;
 
 CREATE TABLE IF NOT EXISTS servicos (
     id_servico SERIAL PRIMARY KEY,
